@@ -138,6 +138,12 @@ var TrackShipmentsOne = func(s string, w io.Writer) error {
 			space = makeSpace(whitespace)
 			branch := detailInfo[3] + space
 			date, times, code := detailInfo[1], detailInfo[2], detailInfo[4]
+			if date == "" {
+				date = "     "
+			}
+			if times == "" {
+				times = "     "
+			}
 			fmt.Fprintf(w, " %s| %s | %s | %s| %s |\n", status, date, times, branch, code)
 		}
 	})
@@ -223,6 +229,12 @@ var TrackShipmentsMultiple = func(s string, c int, w io.Writer) error {
 				space = makeSpace(whitespace)
 				branch := detailInfo[3] + space
 				date, times, code := detailInfo[1], detailInfo[2], detailInfo[4]
+				if date == "" {
+					date = "     "
+				}
+				if times == "" {
+					times = "     "
+				}
 				fmt.Fprintf(w, " %s| %s | %s | %s| %s |\n", status, date, times, branch, code)
 			}
 		})
