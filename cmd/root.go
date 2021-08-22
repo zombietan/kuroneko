@@ -23,7 +23,7 @@ var errColor func(string, ...interface{}) string = color.HiYellowString
 var countColor func(string, ...interface{}) string = color.HiYellowString
 
 func newRootCmd() *cobra.Command {
-	var f int
+	var serial int
 
 	cmd := &cobra.Command{
 		Use:           "kuroneko [flags] 伝票番号",
@@ -51,7 +51,7 @@ func newRootCmd() *cobra.Command {
 				return fmt.Errorf("accepte at most 1 flag(s), received %s", errColor(count))
 			}
 
-			if f < 1 || f > 10 {
+			if serial < 1 || serial > 10 {
 				return fmt.Errorf("%s", errColor("連番で取得できるのは 1~10件 までです"))
 			}
 
@@ -65,11 +65,11 @@ func newRootCmd() *cobra.Command {
 				return TrackShipmentsOne(trackingNumber, cmd.OutOrStdout())
 			}
 
-			return TrackShipmentsMultiple(trackingNumber, f, cmd.OutOrStdout())
+			return TrackShipmentsMultiple(trackingNumber, serial, cmd.OutOrStdout())
 		},
 	}
 
-	cmd.Flags().IntVarP(&f, "serial", "s", 1, "連番取得(10件まで)")
+	cmd.Flags().IntVarP(&serial, "serial", "s", 1, "連番取得(10件まで)")
 	cmd.SetOut(color.Output)
 	cmd.SetErr(color.Error)
 
