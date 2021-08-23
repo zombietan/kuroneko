@@ -19,10 +19,23 @@ import (
 	"golang.org/x/text/transform"
 )
 
-var errColor func(string, ...interface{}) string = color.HiYellowString
-var countColor func(string, ...interface{}) string = color.HiYellowString
+var (
+	errColor   func(string, ...interface{}) string = color.HiYellowString
+	countColor func(string, ...interface{}) string = color.HiYellowString
+)
 
-func newRootCmd() *cobra.Command {
+type ExitCode int
+
+const (
+	Normal ExitCode = iota
+	Abnormal
+)
+
+func (c ExitCode) Exit() {
+	os.Exit(int(c))
+}
+
+func newRootCmd(newOut, newErr io.Writer, args []string) *cobra.Command {
 	var serial int
 
 	cmd := &cobra.Command{
@@ -70,19 +83,20 @@ func newRootCmd() *cobra.Command {
 	}
 
 	cmd.Flags().IntVarP(&serial, "serial", "s", 1, "連番取得(10件まで)")
-	cmd.SetOut(color.Output)
-	cmd.SetErr(color.Error)
+	cmd.SetArgs(args)
+	cmd.SetOut(newOut)
+	cmd.SetErr(newErr)
 
 	return cmd
 }
 
-func Execute() {
-	cmd := newRootCmd()
+func Execute(newOut, newErr io.Writer, args []string) ExitCode {
+	cmd := newRootCmd(newOut, newErr, args)
 	if err := cmd.Execute(); err != nil {
-		w := cmd.ErrOrStderr()
-		fmt.Fprintf(w, "Error: %+v\n", err)
-		os.Exit(1)
+		cmd.PrintErrf("Error: %+v\n", err)
+		return Abnormal
 	}
+	return Normal
 }
 
 func init() {}

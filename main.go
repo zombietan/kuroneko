@@ -1,7 +1,12 @@
 package main
 
-import "github.com/zombietan/kuroneko/cmd"
+import (
+	"os"
+
+	"github.com/fatih/color"
+	"github.com/zombietan/kuroneko/cmd"
+)
 
 func main() {
-	cmd.Execute()
+	cmd.Execute(color.Output, color.Error, os.Args[1:]).Exit()
 }
