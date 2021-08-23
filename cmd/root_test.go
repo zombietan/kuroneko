@@ -39,7 +39,7 @@ func TestOverSerial(t *testing.T) {
 	color.NoColor = true
 	outBuf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	ext := Execute(outBuf, errBuf, []string{"--serial", "100", "00000000000"})
+	ext := Execute(outBuf, errBuf, []string{"--serial", "11", "00000000000"})
 	if ext != Abnormal {
 		t.Fatal("failed test1 OvreSerial")
 	}
