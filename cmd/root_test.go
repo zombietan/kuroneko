@@ -2,66 +2,63 @@ package cmd
 
 import (
 	"bytes"
-	"strings"
 	"testing"
+
+	"github.com/fatih/color"
 )
 
 func TestManyArgs(t *testing.T) {
-	outStream := new(bytes.Buffer)
-	cmd := newRootCmd()
-	cmd.SetOut(outStream)
-
-	cmd.SetArgs([]string{"00000000000", "000000000000"})
-	if err := cmd.Execute(); err == nil {
+	color.NoColor = true
+	outBuf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	ext := Execute(outBuf, errBuf, []string{"00000000000", "000000000000"})
+	if ext != Abnormal {
 		t.Fatal("failed test1 ManyArgs")
 	}
-	errMessage := "accepts at most 1 arg(s), received 2"
-	if err := cmd.Execute(); !strings.Contains(err.Error(), errMessage) {
+	errMessage := "Error: accepts at most 1 arg(s), received 2\n"
+	if errMessage != errBuf.String() {
 		t.Fatal("failed test2 ManyArgs")
 	}
 }
 
 func TestNoArgs(t *testing.T) {
-	outStream := new(bytes.Buffer)
-	cmd := newRootCmd()
-	cmd.SetOut(outStream)
-
-	cmd.SetArgs([]string{})
-	if err := cmd.Execute(); err == nil {
+	color.NoColor = true
+	outBuf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	ext := Execute(outBuf, errBuf, []string{})
+	if ext != Abnormal {
 		t.Fatal("failed test1 NoArgs")
 	}
-	errMessage := "伝票番号を入力してください"
-	if err := cmd.Execute(); !strings.Contains(err.Error(), errMessage) {
+	errMessage := "Error: 伝票番号を入力してください\n"
+	if errMessage != errBuf.String() {
 		t.Fatal("failed test2 NoArgs")
 	}
 }
 
 func TestOverSerial(t *testing.T) {
-	outStream := new(bytes.Buffer)
-	cmd := newRootCmd()
-	cmd.SetOut(outStream)
-
-	cmd.SetArgs([]string{"-s", "100", "00000000000"})
-	if err := cmd.Execute(); err == nil {
-		t.Fatal("failed test1 LimitOverSerial")
+	color.NoColor = true
+	outBuf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	ext := Execute(outBuf, errBuf, []string{"--serial", "100", "00000000000"})
+	if ext != Abnormal {
+		t.Fatal("failed test1 OvreSerial")
 	}
-	errMessage := "連番で取得できるのは 1~10件 までです"
-	if err := cmd.Execute(); !strings.Contains(err.Error(), errMessage) {
-		t.Fatal("failed test2 LimitOverSerial")
+	errMessage := "Error: 連番で取得できるのは 1~10件 までです\n"
+	if errMessage != errBuf.String() {
+		t.Fatal("failed test2 OverSerial")
 	}
 }
 
-func TestFewSerial(t *testing.T) {
-	outStream := new(bytes.Buffer)
-	cmd := newRootCmd()
-	cmd.SetOut(outStream)
-
-	cmd.SetArgs([]string{"-s", "0", "00000000000"})
-	if err := cmd.Execute(); err == nil {
+func TestFewrSerial(t *testing.T) {
+	color.NoColor = true
+	outBuf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	ext := Execute(outBuf, errBuf, []string{"--serial", "0", "00000000000"})
+	if ext != Abnormal {
 		t.Fatal("failed test1 FewSerial")
 	}
-	errMessage := "連番で取得できるのは 1~10件 までです"
-	if err := cmd.Execute(); !strings.Contains(err.Error(), errMessage) {
+	errMessage := "Error: 連番で取得できるのは 1~10件 までです\n"
+	if errMessage != errBuf.String() {
 		t.Fatal("failed test2 FewSerial")
 	}
 }
