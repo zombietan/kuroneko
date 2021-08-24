@@ -24,14 +24,14 @@ var (
 	countColor func(string, ...interface{}) string = color.HiYellowString
 )
 
-type ExitCode int
+type exitCode int
 
 const (
-	Normal ExitCode = iota
-	Abnormal
+	normal exitCode = iota
+	abnormal
 )
 
-func (c ExitCode) Exit() {
+func (c exitCode) Exit() {
 	os.Exit(int(c))
 }
 
@@ -75,10 +75,10 @@ func newRootCmd(newOut, newErr io.Writer, args []string) *cobra.Command {
 			trackingNumber := args[0]
 			flagCount := cmd.Flags().NFlag()
 			if flagCount == 0 {
-				return TrackShipmentsOne(trackingNumber, cmd.OutOrStdout())
+				return trackShipmentsOne(trackingNumber, cmd.OutOrStdout())
 			}
 
-			return TrackShipmentsMultiple(trackingNumber, serial, cmd.OutOrStdout())
+			return trackShipmentsMultiple(trackingNumber, serial, cmd.OutOrStdout())
 		},
 	}
 
@@ -90,13 +90,13 @@ func newRootCmd(newOut, newErr io.Writer, args []string) *cobra.Command {
 	return cmd
 }
 
-func Execute(newOut, newErr io.Writer, args []string) ExitCode {
+func Execute(newOut, newErr io.Writer, args []string) exitCode {
 	cmd := newRootCmd(newOut, newErr, args)
 	if err := cmd.Execute(); err != nil {
 		cmd.PrintErrf("Error: %+v\n", err)
-		return Abnormal
+		return abnormal
 	}
-	return Normal
+	return normal
 }
 
 func init() {}
@@ -107,7 +107,7 @@ func makeSpace(count int) string {
 	return strings.Repeat(s, count)
 }
 
-var TrackShipmentsOne = func(s string, w io.Writer) error {
+var trackShipmentsOne = func(s string, w io.Writer) error {
 	values := url.Values{}
 	values.Add("number00", "1")
 	values.Add("number01", s)
@@ -169,7 +169,7 @@ var TrackShipmentsOne = func(s string, w io.Writer) error {
 
 }
 
-var TrackShipmentsMultiple = func(s string, c int, w io.Writer) error {
+var trackShipmentsMultiple = func(s string, c int, w io.Writer) error {
 	trackingNumber := removeHyphen(s)
 	if !isInt(trackingNumber) {
 		return fmt.Errorf("%s", errColor("不正な数値です"))
