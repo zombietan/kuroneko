@@ -12,7 +12,7 @@ func TestManyArgs(t *testing.T) {
 	outBuf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	ext := Execute(outBuf, errBuf, []string{"00000000000", "000000000000"})
-	if ext != Abnormal {
+	if ext != abnormal {
 		t.Fatal("failed test1 ManyArgs")
 	}
 	errMessage := "Error: accepts at most 1 arg(s), received 2\n"
@@ -26,7 +26,7 @@ func TestNoArgs(t *testing.T) {
 	outBuf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	ext := Execute(outBuf, errBuf, []string{})
-	if ext != Abnormal {
+	if ext != abnormal {
 		t.Fatal("failed test1 NoArgs")
 	}
 	errMessage := "Error: 伝票番号を入力してください\n"
@@ -40,7 +40,7 @@ func TestOverSerial(t *testing.T) {
 	outBuf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	ext := Execute(outBuf, errBuf, []string{"--serial", "11", "00000000000"})
-	if ext != Abnormal {
+	if ext != abnormal {
 		t.Fatal("failed test1 OvreSerial")
 	}
 	errMessage := "Error: 連番で取得できるのは 1~10件 までです\n"
@@ -54,7 +54,7 @@ func TestFewrSerial(t *testing.T) {
 	outBuf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	ext := Execute(outBuf, errBuf, []string{"--serial", "0", "00000000000"})
-	if ext != Abnormal {
+	if ext != abnormal {
 		t.Fatal("failed test1 FewSerial")
 	}
 	errMessage := "Error: 連番で取得できるのは 1~10件 までです\n"
