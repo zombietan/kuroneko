@@ -36,7 +36,6 @@ func (c exitCode) Exit() {
 }
 
 func newRootCmd(newOut, newErr io.Writer, args []string) *cobra.Command {
-	var serial int
 
 	cmd := &cobra.Command{
 		Use:           "kuroneko [flags] 伝票番号",
@@ -64,6 +63,11 @@ func newRootCmd(newOut, newErr io.Writer, args []string) *cobra.Command {
 				return fmt.Errorf("accepte at most 1 flag(s), received %s", errColor(count))
 			}
 
+			serial, err := cmd.Flags().GetInt("serial")
+			if err != nil {
+				return err
+			}
+
 			if serial < 1 || serial > 10 {
 				return fmt.Errorf("%s", errColor("連番で取得できるのは 1~10件 までです"))
 			}
@@ -73,16 +77,12 @@ func newRootCmd(newOut, newErr io.Writer, args []string) *cobra.Command {
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			trackingNumber := args[0]
-			flagCount := cmd.Flags().NFlag()
-			if flagCount == 0 {
-				return trackShipmentsOne(trackingNumber, cmd.OutOrStdout())
-			}
-
-			return trackShipmentsMultiple(trackingNumber, serial, cmd.OutOrStdout())
+			tracker := newTracker(cmd)
+			return tracker.track(trackingNumber)
 		},
 	}
 
-	cmd.Flags().IntVarP(&serial, "serial", "s", 1, "連番取得(10件まで)")
+	cmd.Flags().IntP("serial", "s", 1, "連番取得(10件まで)")
 	cmd.SetArgs(args)
 	cmd.SetOut(newOut)
 	cmd.SetErr(newErr)
@@ -107,7 +107,32 @@ func makeSpace(count int) string {
 	return strings.Repeat(s, count)
 }
 
-var trackShipmentsOne = func(s string, w io.Writer) error {
+type tracker interface {
+	track(s string) error
+}
+
+func newTracker(cmd *cobra.Command) tracker {
+	flagCount := cmd.Flags().NFlag()
+	switch flagCount {
+	case 0:
+		return &trackShipmentsOne{
+			cmd: cmd,
+		}
+	default:
+		// PreRunEでエラーチェック済み
+		serial, _ := cmd.Flags().GetInt("serial")
+		return &trackShipmentsMultiple{
+			cmd:    cmd,
+			serial: serial,
+		}
+	}
+}
+
+type trackShipmentsOne struct {
+	cmd *cobra.Command
+}
+
+func (t *trackShipmentsOne) track(s string) error {
 	values := url.Values{}
 	values.Add("number00", "1")
 	values.Add("number01", s)
@@ -127,6 +152,7 @@ var trackShipmentsOne = func(s string, w io.Writer) error {
 		return err
 	}
 
+	w := t.cmd.OutOrStdout()
 	doc.Find(".saisin td").Each(func(_ int, args *goquery.Selection) {
 		if args.HasClass("bold") || args.HasClass("font14") {
 			text := args.Text()
@@ -169,7 +195,12 @@ var trackShipmentsOne = func(s string, w io.Writer) error {
 
 }
 
-var trackShipmentsMultiple = func(s string, c int, w io.Writer) error {
+type trackShipmentsMultiple struct {
+	cmd    *cobra.Command
+	serial int
+}
+
+func (t *trackShipmentsMultiple) track(s string) error {
 	trackingNumber := removeHyphen(s)
 	if !isInt(trackingNumber) {
 		return fmt.Errorf("%s", errColor("不正な数値です"))
@@ -188,7 +219,7 @@ var trackShipmentsMultiple = func(s string, c int, w io.Writer) error {
 	values.Add("number00", "1")
 
 	var i int
-	for i = 0; i < c; i++ {
+	for i = 0; i < t.serial; i++ {
 		querykey := fmt.Sprintf("number%02d", i+1)
 		values.Add(querykey, <-ch)
 	}
@@ -208,6 +239,7 @@ var trackShipmentsMultiple = func(s string, c int, w io.Writer) error {
 		return err
 	}
 
+	w := t.cmd.OutOrStdout()
 	doc.Find("center").Each(func(_ int, s *goquery.Selection) {
 		hasDetail := false
 		s.Find(".saisin td").Each(func(_ int, args *goquery.Selection) {
