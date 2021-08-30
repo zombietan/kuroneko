@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -214,7 +215,8 @@ func (t *trackShipmentsMultiple) track(s string) error {
 		return fmt.Errorf("%s", errColor("伝票番号に誤りがあります"))
 	}
 
-	ch := sevenCheckCalculate(trackingNumber[:len(trackingNumber)-1])
+	ctx, cancel := context.WithCancel(context.Background())
+	ch := sevenCheckCalculate(ctx, trackingNumber[:len(trackingNumber)-1])
 	values := url.Values{}
 	values.Add("number00", "1")
 
@@ -223,6 +225,7 @@ func (t *trackShipmentsMultiple) track(s string) error {
 		querykey := fmt.Sprintf("number%02d", i+1)
 		values.Add(querykey, <-ch)
 	}
+	cancel()
 
 	contactUrl := "http://toi.kuronekoyamato.co.jp/cgi-bin/tneko"
 	resp, err := http.PostForm(contactUrl, values)
@@ -302,7 +305,7 @@ func removeHyphen(s string) string {
 	return s
 }
 
-func sevenCheckCalculate(n string) <-chan string {
+func sevenCheckCalculate(ctx context.Context, n string) <-chan string {
 	ch := make(chan string)
 	const coef = 7
 	var format = "%012s"
@@ -311,14 +314,21 @@ func sevenCheckCalculate(n string) <-chan string {
 	}
 	go func() {
 		sign, _ := strconv.ParseInt(n, 10, 64)
+	LOOP:
 		for {
-			digit := sign % coef
-			digitStr := strconv.FormatInt(digit, 10)
-			trackingNumber := strconv.FormatInt(sign, 10) + digitStr
-			zeroPaddingNumber := fmt.Sprintf(format, trackingNumber)
-			ch <- zeroPaddingNumber
-			sign++
+			select {
+			case <-ctx.Done():
+				break LOOP
+			default:
+				digit := sign % coef
+				digitStr := strconv.FormatInt(digit, 10)
+				trackingNumber := strconv.FormatInt(sign, 10) + digitStr
+				zeroPaddingNumber := fmt.Sprintf(format, trackingNumber)
+				ch <- zeroPaddingNumber
+				sign++
+			}
 		}
+		close(ch)
 	}()
 	return ch
 }
