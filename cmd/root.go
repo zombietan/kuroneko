@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -51,7 +52,7 @@ func newRootCmd(newOut, newErr io.Writer, args []string) *cobra.Command {
 			}
 
 			if len(args) == 0 {
-				return fmt.Errorf("%s", errColor("伝票番号を入力してください"))
+				return errors.New(errColor("伝票番号を入力してください"))
 			}
 
 			return nil
@@ -70,7 +71,7 @@ func newRootCmd(newOut, newErr io.Writer, args []string) *cobra.Command {
 			}
 
 			if serial < 1 || serial > 10 {
-				return fmt.Errorf("%s", errColor("連番で取得できるのは 1~10件 までです"))
+				return errors.New(errColor("連番で取得できるのは 1~10件 までです"))
 			}
 
 			return nil
