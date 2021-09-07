@@ -51,7 +51,7 @@ func newRootCmd(newOut, newErr io.Writer, args []string) *cobra.Command {
 			}
 
 			if len(args) == 0 {
-				return errors.New(errColor("伝票番号を入力してください"))
+				return coloredError("伝票番号を入力してください")
 			}
 
 			return nil
@@ -70,7 +70,7 @@ func newRootCmd(newOut, newErr io.Writer, args []string) *cobra.Command {
 			}
 
 			if serial < 1 || serial > 10 {
-				return errors.New(errColor("連番で取得できるのは 1~10件 までです"))
+				return coloredError("連番で取得できるのは 1~10件 までです")
 			}
 
 			return nil
@@ -204,15 +204,15 @@ type trackShipmentsMultiple struct {
 func (t *trackShipmentsMultiple) track(s string) error {
 	trackingNumber := removeHyphen(s)
 	if !isInt(trackingNumber) {
-		return errors.New(errColor("不正な数値です"))
+		return coloredError("不正な数値です")
 	}
 
 	if !is12or11Digits(trackingNumber) {
-		return errors.New(errColor("12 or 11桁の伝票番号を入力してください"))
+		return coloredError("12 or 11桁の伝票番号を入力してください")
 	}
 
 	if !isCorrectNumber(trackingNumber) {
-		return errors.New(errColor("伝票番号に誤りがあります"))
+		return coloredError("伝票番号に誤りがあります")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -295,6 +295,10 @@ func (t *trackShipmentsMultiple) track(s string) error {
 	})
 
 	return nil
+}
+
+func coloredError(s string) error {
+	return errors.New(errColor(s))
 }
 
 func removeHyphen(s string) string {
