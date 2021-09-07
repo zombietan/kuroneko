@@ -204,15 +204,15 @@ type trackShipmentsMultiple struct {
 func (t *trackShipmentsMultiple) track(s string) error {
 	trackingNumber := removeHyphen(s)
 	if !isInt(trackingNumber) {
-		return fmt.Errorf("%s", errColor("不正な数値です"))
+		return errors.New(errColor("不正な数値です"))
 	}
 
 	if !is12or11Digits(trackingNumber) {
-		return fmt.Errorf("%s", errColor("12 or 11桁の伝票番号を入力してください"))
+		return errors.New(errColor("12 or 11桁の伝票番号を入力してください"))
 	}
 
 	if !isCorrectNumber(trackingNumber) {
-		return fmt.Errorf("%s", errColor("伝票番号に誤りがあります"))
+		return errors.New(errColor("伝票番号に誤りがあります"))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
