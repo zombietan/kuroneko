@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -147,7 +146,7 @@ func (t *trackShipmentsOne) track(s string) error {
 
 	defer resp.Body.Close()
 
-	utfBody := transform.NewReader(bufio.NewReader(resp.Body), japanese.ShiftJIS.NewDecoder())
+	utfBody := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
 
 	doc, err := goquery.NewDocumentFromReader(utfBody)
 	if err != nil {
@@ -236,7 +235,7 @@ func (t *trackShipmentsMultiple) track(s string) error {
 
 	defer resp.Body.Close()
 
-	utfBody := transform.NewReader(bufio.NewReader(resp.Body), japanese.ShiftJIS.NewDecoder())
+	utfBody := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
 
 	doc, err := goquery.NewDocumentFromReader(utfBody)
 	if err != nil {
