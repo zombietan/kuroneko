@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -16,8 +17,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-	"golang.org/x/text/encoding/japanese"
-	"golang.org/x/text/transform"
 )
 
 var (
@@ -135,7 +134,6 @@ type trackShipmentsOne struct {
 
 func (t *trackShipmentsOne) track(s string) error {
 	values := url.Values{}
-	values.Add("number00", "1")
 	values.Add("number01", s)
 
 	contactUrl := "http://toi.kuronekoyamato.co.jp/cgi-bin/tneko"
@@ -146,54 +144,59 @@ func (t *trackShipmentsOne) track(s string) error {
 
 	defer resp.Body.Close()
 
-	utfBody := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-
-	doc, err := goquery.NewDocumentFromReader(utfBody)
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		return err
 	}
 
 	w := t.cmd.OutOrStdout()
-	doc.Find(".saisin td").Each(func(_ int, args *goquery.Selection) {
-		if args.HasClass("bold") || args.HasClass("font14") {
-			text := args.Text()
-			fmt.Fprintf(w, " %s\n", text)
+	trackNumber := doc.Find(".tracking-invoice-block-title").Text()
+	trackNumber = strings.Replace(
+		trackNumber, "1件目：", "伝票番号 ", -1,
+	)
+	stateTitle := doc.Find(".tracking-invoice-block-state-title").Text()
+	stateSummary := doc.Find(".tracking-invoice-block-state-summary").Text()
+	fmt.Fprintf(w, "%s\n%s\n%s\n", trackNumber, stateTitle, stateSummary)
+
+	informations := doc.Find(".tracking-invoice-block-summary ul li").Map(
+		func(_ int, s *goquery.Selection) string {
+			item := s.Find(".item").Text()
+			data := s.Find(".data").Text()
+			return item + data
+		},
+	)
+	if len(informations) != 0 {
+		fmt.Fprintf(w, "\n")
+	}
+	for _, info := range informations {
+		fmt.Fprintf(w, "%s\n", info)
+	}
+	if len(informations) != 0 {
+		fmt.Fprintf(w, "\n")
+	}
+
+	doc.Find(".tracking-invoice-block-detail ol li").Each(func(_ int, args *goquery.Selection) {
+		item := args.Find(".item").Text()
+		itemLength := utf8.RuneCountInString(item)
+		whitespace := 15 - itemLength
+		space := makeSpace(whitespace)
+		item = item + space
+		date := args.Find(".date").Text()
+		if date == "" {
+			date = "              "
 		}
+		name := args.Find(".name").Text()
+		nameLength := utf8.RuneCountInString(name)
+		whitespace = 20 - nameLength
+		space = makeSpace(whitespace)
+		name = name + space
+		fmt.Fprintf(w, "%s| %s | %s|\n", item, date, name)
 	})
 
-	fmt.Fprintf(w, "\n")
-
-	doc.Find(".meisai tr").Each(func(i int, args *goquery.Selection) {
-		if i != 0 {
-			information := args.Find("td").Map(func(_ int, s *goquery.Selection) string {
-				text := s.Text()
-				return text
-			})
-			detailInfo := information[1:6]
-			statusLength := utf8.RuneCountInString(detailInfo[0])
-			whitespace := 15 - statusLength
-			space := makeSpace(whitespace)
-			status := detailInfo[0] + space
-			branchLength := utf8.RuneCountInString(detailInfo[3])
-			whitespace = 20 - branchLength
-			space = makeSpace(whitespace)
-			branch := detailInfo[3] + space
-			date, times, code := detailInfo[1], detailInfo[2], detailInfo[4]
-			if date == "" {
-				date = "     "
-			}
-			if times == "" {
-				times = "     "
-			}
-			fmt.Fprintf(w, " %s| %s | %s | %s| %s |\n", status, date, times, branch, code)
-		}
-	})
-
-	underLine := strings.Repeat("-", 99)
+	underLine := strings.Repeat("-", 90)
 	fmt.Fprintf(w, "%s\n", underLine)
 
 	return nil
-
 }
 
 type trackShipmentsMultiple struct {
@@ -218,7 +221,6 @@ func (t *trackShipmentsMultiple) track(s string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	ch := sevenCheckCalculate(ctx, trackingNumber[:len(trackingNumber)-1])
 	values := url.Values{}
-	values.Add("number00", "1")
 
 	var i int
 	for i = 0; i < t.serial; i++ {
@@ -235,63 +237,57 @@ func (t *trackShipmentsMultiple) track(s string) error {
 
 	defer resp.Body.Close()
 
-	utfBody := transform.NewReader(resp.Body, japanese.ShiftJIS.NewDecoder())
-
-	doc, err := goquery.NewDocumentFromReader(utfBody)
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		return err
 	}
 
 	w := t.cmd.OutOrStdout()
-	doc.Find("center").Each(func(_ int, s *goquery.Selection) {
-		hasDetail := false
-		s.Find(".saisin td").Each(func(_ int, args *goquery.Selection) {
-			if args.HasClass("number") {
-				hasDetail = true
-				subject := args.Text()
-				fmt.Fprintf(w, " %s\n", countColor(subject))
-			}
+	doc.Find(".parts-tracking-invoice-block").Each(func(i int, args *goquery.Selection) {
+		count := strconv.Itoa(i+1) + "件目"
+		trackNumber := args.Find(".tracking-invoice-block-title").Text()
+		rep := regexp.MustCompile(`[0-9]*件目：`)
+		trackNumber = rep.ReplaceAllString(trackNumber, "伝票番号 ")
+		stateTitle := args.Find(".tracking-invoice-block-state-title").Text()
+		stateSummary := args.Find(".tracking-invoice-block-state-summary").Text()
+		fmt.Fprintf(w, "%s\n%s\n%s\n%s\n", countColor(count), trackNumber, stateTitle, stateSummary)
 
-			if args.HasClass("bold") || args.HasClass("font14") {
-				text := args.Text()
-				fmt.Fprintf(w, " %s\n", text)
-			}
-		})
-
-		if hasDetail {
+		informations := args.Find(".tracking-invoice-block-summary ul li").Map(
+			func(_ int, s *goquery.Selection) string {
+				item := s.Find(".item").Text()
+				data := s.Find(".data").Text()
+				return item + data
+			},
+		)
+		if len(informations) != 0 {
+			fmt.Fprintf(w, "\n")
+		}
+		for _, info := range informations {
+			fmt.Fprintf(w, "%s\n", info)
+		}
+		if len(informations) != 0 {
 			fmt.Fprintf(w, "\n")
 		}
 
-		s.Find(".meisai tr").Each(func(i int, args *goquery.Selection) {
-			if i != 0 {
-				information := args.Find("td").Map(func(_ int, s *goquery.Selection) string {
-					text := s.Text()
-					return text
-				})
-				detailInfo := information[1:6]
-				statusLength := utf8.RuneCountInString(detailInfo[0])
-				whitespace := 15 - statusLength
-				space := makeSpace(whitespace)
-				status := detailInfo[0] + space
-				branchLength := utf8.RuneCountInString(detailInfo[3])
-				whitespace = 20 - branchLength
-				space = makeSpace(whitespace)
-				branch := detailInfo[3] + space
-				date, times, code := detailInfo[1], detailInfo[2], detailInfo[4]
-				if date == "" {
-					date = "     "
-				}
-				if times == "" {
-					times = "     "
-				}
-				fmt.Fprintf(w, " %s| %s | %s | %s| %s |\n", status, date, times, branch, code)
+		args.Find(".tracking-invoice-block-detail ol li").Each(func(_ int, s *goquery.Selection) {
+			item := s.Find(".item").Text()
+			itemLength := utf8.RuneCountInString(item)
+			whitespace := 15 - itemLength
+			space := makeSpace(whitespace)
+			item = item + space
+			date := s.Find(".date").Text()
+			if date == "" {
+				date = "              "
 			}
+			name := s.Find(".name").Text()
+			nameLength := utf8.RuneCountInString(name)
+			whitespace = 20 - nameLength
+			space = makeSpace(whitespace)
+			name = name + space
+			fmt.Fprintf(w, "%s| %s | %s|\n", item, date, name)
 		})
-
-		if hasDetail {
-			underLine := strings.Repeat("-", 99)
-			fmt.Fprintf(w, "%s\n", underLine)
-		}
+		underLine := strings.Repeat("-", 90)
+		fmt.Fprintf(w, "%s\n", underLine)
 	})
 
 	return nil
