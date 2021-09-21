@@ -167,11 +167,9 @@ func (t *trackShipmentsOne) track(s string) error {
 	)
 	if len(informations) != 0 {
 		fmt.Fprintf(w, "\n")
-	}
-	for _, info := range informations {
-		fmt.Fprintf(w, "%s\n", info)
-	}
-	if len(informations) != 0 {
+		for _, info := range informations {
+			fmt.Fprintf(w, "%s\n", info)
+		}
 		fmt.Fprintf(w, "\n")
 	}
 
@@ -261,11 +259,9 @@ func (t *trackShipmentsMultiple) track(s string) error {
 		)
 		if len(informations) != 0 {
 			fmt.Fprintf(w, "\n")
-		}
-		for _, info := range informations {
-			fmt.Fprintf(w, "%s\n", info)
-		}
-		if len(informations) != 0 {
+			for _, info := range informations {
+				fmt.Fprintf(w, "%s\n", info)
+			}
 			fmt.Fprintf(w, "\n")
 		}
 
