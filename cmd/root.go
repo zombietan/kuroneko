@@ -71,7 +71,7 @@ func newRootCmd(newOut, newErr io.Writer, args []string) *cobra.Command {
 
 			i, err := strconv.Atoi(serial)
 			if err != nil {
-				return coloredError("連番を整数で入力してください")
+				return fmt.Errorf("flag accept integer argument, received %s", errColor(serial))
 			}
 
 			if i < 1 || i > 10 {
