@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -63,12 +64,17 @@ func newRootCmd(newOut, newErr io.Writer, args []string) *cobra.Command {
 				return fmt.Errorf("accepte at most 1 flag(s), received %s", errColor(count))
 			}
 
-			serial, err := cmd.Flags().GetInt("serial")
+			serial, err := cmd.Flags().GetString("serial")
 			if err != nil {
 				return err
 			}
 
-			if serial < 1 || serial > 10 {
+			i, err := strconv.Atoi(serial)
+			if err != nil {
+				return coloredError("連番を整数で入力してください")
+			}
+
+			if i < 1 || i > 10 {
 				return coloredError("連番で取得できるのは 1~10件 までです")
 			}
 
@@ -82,7 +88,7 @@ func newRootCmd(newOut, newErr io.Writer, args []string) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().IntP("serial", "s", 1, "連番取得(10件まで)")
+	cmd.Flags().StringP("serial", "s", "1", "連番取得(10件まで)")
 	cmd.SetArgs(args)
 	cmd.SetOut(newOut)
 	cmd.SetErr(newErr)
@@ -120,7 +126,8 @@ func newTracker(cmd *cobra.Command) tracker {
 		}
 	default:
 		// PreRunEでエラーチェック済み
-		serial, _ := cmd.Flags().GetInt("serial")
+		s, _ := cmd.Flags().GetString("serial")
+		serial, _ := strconv.Atoi(s)
 		return &trackShipmentsMultiple{
 			cmd:    cmd,
 			serial: serial,
@@ -137,6 +144,7 @@ func (t *trackShipmentsOne) track(s string) error {
 	values.Add("number01", s)
 
 	contactUrl := "http://toi.kuronekoyamato.co.jp/cgi-bin/tneko"
+	http.DefaultClient.Timeout = 10 * time.Second
 	resp, err := http.PostForm(contactUrl, values)
 	if err != nil {
 		return err
@@ -228,6 +236,7 @@ func (t *trackShipmentsMultiple) track(s string) error {
 	cancel()
 
 	contactUrl := "http://toi.kuronekoyamato.co.jp/cgi-bin/tneko"
+	http.DefaultClient.Timeout = 30 * time.Second
 	resp, err := http.PostForm(contactUrl, values)
 	if err != nil {
 		return err
