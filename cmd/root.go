@@ -61,7 +61,7 @@ func newRootCmd(newOut, newErr io.Writer, args []string) *cobra.Command {
 			flagCount := cmd.Flags().NFlag()
 			if flagCount > 1 {
 				count := strconv.Itoa(flagCount)
-				return fmt.Errorf("accepte at most 1 flag(s), received %s", errColor(count))
+				return fmt.Errorf("accepts at most 1 flag(s), received %s", errColor(count))
 			}
 
 			serial, err := cmd.Flags().GetString("serial")
@@ -71,7 +71,7 @@ func newRootCmd(newOut, newErr io.Writer, args []string) *cobra.Command {
 
 			i, err := strconv.Atoi(serial)
 			if err != nil {
-				return fmt.Errorf("flag accept integer argument, received %s", errColor(serial))
+				return fmt.Errorf("flag accepts integer argument, received %s", errColor(serial))
 			}
 
 			if i < 1 || i > 10 {
